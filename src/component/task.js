@@ -7,10 +7,11 @@ export default function Task(){
         return Math.floor(Math.random() * max)
     }
     const initialTask = [{
-            'id' : 1,
             'title' : '',
-            'time' : '00:00 am - 00:00 am',
-            'isDone' : false
+            'startTime' : '05:00',
+            'endTime' : '00:00',
+            'isDone' : false,
+            'gap' : 0
     }]
     const taskReducer = (state,{type,payload})=>{
         if(type === 'ADDNEWTASK')
@@ -19,6 +20,10 @@ export default function Task(){
             return payload
         else if(type === 'EDITTASK')
             return [...state]
+        else if(type === 'SETSTARTTIME')
+            return [...state]
+        else if(type === 'SETENDTIME')
+            return [...state]
         else return state
     }
     const [tasks,dispatchTask] = useReducer(taskReducer,initialTask)
@@ -26,12 +31,7 @@ export default function Task(){
         function addTask(e){
                 dispatchTask({
                     'type' : 'ADDNEWTASK',
-                    'payload' : {
-                        'id' : 0,
-                        'title' : '',
-                        'time' : '00:00 am - 00:00 am',
-                        'isDone' : false
-                     }
+                    'payload' : initialTask[0]
                 })
              
         }
@@ -87,10 +87,44 @@ export default function Task(){
         })
         
     }
+    function setStartTime(e){
+        let { id } = e.target.dataset
+        id = parseInt(id)
+        console.log(typeof e.target.value) 
+        tasks[id] = {
+            ...tasks[id],
+            'startTime' : e.target.value,
+        }
+        dispatchTask({
+            'type' : 'SETSTARTTIME',
+            'payload' : tasks
+        })
+
+    }
+    function setEndTime(e){
+        let { id } = e.target.dataset
+        id = parseInt(id)
+        console.log(e.target.value)
+        tasks[id] = {
+            ...tasks[id],
+            'endTime' : e.target.value
+        }
+        dispatchTask({
+            'type' : 'SETENDTIME',
+            'payload' : tasks
+        })
+    }
+    useEffect(()=>{
+        setInterval(()=>{
+            const date = new Date(Date.now())
+            console.log(date)
+            console.log(date.getHours())
+        },1000)
+    })
     return(
         <div className='task-container'>
             {
-                tasks.map(({id,title,time,isDone},index)=>{
+                tasks.map(({title,startTime,endTime,isDone},index)=>{
                     return (
                         <div className='that-task-container' key={index}>
                             <div draggable className='that-inner-task-container'>
@@ -100,8 +134,10 @@ export default function Task(){
                                 onChange = {(e)=>setTitle(e)} 
                                 />
                                 <div id='task-time-field-container'>
-                                <input id='task-time-field' type='time' />
-                                <input id='task-time-field' type='time' />
+                                <input data-id = {index} id='task-time-field' value={startTime} 
+                                type='time' onInput={(e)=>setStartTime(e)} />
+                                <input data-id = {index} id='task-time-field' value={endTime}
+                                type='time' onInput={(e)=>setEndTime(e)} />
                                 </div>
                                 </div>
                             </div>
@@ -113,6 +149,7 @@ export default function Task(){
                                     <Trash size={15} id='remove-task' />
                                 </button> 
                             </div>
+                            <div id='progress-bar' className='complete-bar'></div>
                         </div>
                     )
                 })

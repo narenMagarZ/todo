@@ -11,6 +11,7 @@
     border-radius: 6px;
     align-items: center;
     margin: 10px 0;
+    position: relative;
 }
 .that-inner-task-container{
     display: flex;
@@ -60,4 +61,18 @@
 }
 svg{
     pointer-events: none;
+}
+#progress-bar {
+    position: absolute;
+    height: 100%;
+    border-radius: 6px;
+    width: 10%;
+    left: 0;
+    top: 0;
+    z-index: -1;
+}
+.complete-bar {
+    background-color: #3ab984;
+}
+.incomplete-bar {
 }
