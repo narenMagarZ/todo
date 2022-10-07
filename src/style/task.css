@@ -1,0 +1,63 @@
+.task-container {
+    margin: 10px 0;
+    
+}
+
+
+.that-task-container{
+    border:2px solid #c7c7c7;
+    padding: 5px;
+    display: flex;
+    border-radius: 6px;
+    align-items: center;
+    margin: 10px 0;
+}
+.that-inner-task-container{
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+.that-inner-task-container > div{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+#task-time-field,#task-title-field{
+    text-align: start;
+    border: none;
+    font-size: 16px;
+    padding: 4px ;
+    background-color: transparent;
+    outline: none;
+}
+#task-time-field{
+    width: 50%;
+}
+#task-time-field-container{
+    display: flex;
+    flex-direction: column;
+}
+#task-control-container{
+    display: flex;
+    align-items: center;
+}
+#task-control-container > button {
+    cursor: pointer;
+    background-color: transparent;
+    border: none;
+    margin: 0 4px;
+    border-radius: 10px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#task-control-container > button:hover{
+    background-color: #d9eaec;
+}
+#add-task,#remove-task {
+}
+svg{
+    pointer-events: none;
+}
