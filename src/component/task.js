@@ -10,9 +10,8 @@ export default function Task(){
     const initialTask = [{
             'title' : '',
             'startTime' : '05:00',
-            'endTime' : '00:00',
+            'endTime' : '05:00',
             'isDone' : false,
-            'gap' : 0
     }]
     const taskReducer = (state,{type,payload})=>{
         if(type === 'ADDNEWTASK')
@@ -74,9 +73,9 @@ export default function Task(){
         }
     })
     useEffect(()=>{
-        setActiveHour(()=>{
-            return [...tasks[0].startTime.split(':'),...tasks[0].endTime.split(':')]
-        })
+        // setActiveHour(()=>{
+        //     return [...tasks[0].startTime.split(':'),...tasks[0].endTime.split(':')]
+        // })
         console.log(tasks)
     },[tasks])
 
@@ -113,19 +112,9 @@ export default function Task(){
     function setEndTime(e){
         let { id } = e.target.dataset
         id = parseInt(id)
-        const initialTime = tasks[id].startTime.split(':')
-        const endTime = e.target.value.split(':')
-        console.log(endTime,'case# endtime check')
-        const initialTimeToHour = parseInt(initialTime[0]) + ( parseInt(initialTime[1]) / 60 )
-        let endTimeToHour = parseInt(endTime[0]) + ( parseInt(endTime[1]) / 60 )
-        if(endTimeToHour < initialTimeToHour)
-            endTimeToHour = endTimeToHour + 24
-        const gap = endTimeToHour - initialTimeToHour
-        console.log(gap,'case# gap')
         tasks[id] = {
             ...tasks[id],
             'endTime' : e.target.value,
-            'gap' : gap
         }
         dispatchTask({
             'type' : 'SETENDTIME',
@@ -134,56 +123,53 @@ export default function Task(){
     }
     useEffect(()=>{
         const interval =  setInterval(()=>{
-            // const date = new Date(Date.now())
-            // function calculateGapPercentage(currentGap,totalGap){
-            //     const gapPercentage = ( currentGap * 100 ) / totalGap
-            //     return gapPercentage 
-            // }         
-            // console.log(activeHour)
-            // let midNightHour = parseInt(activeHour[2])
-            // if(activeHour[2] === '00')
-            //     midNightHour = 24
-            // console.log(midNightHour,'case# midnight hour')
-            // if(parseInt(activeHour[0]) <= date.getHours() && date.getHours() <= midNightHour  ){
-            //     console.log('calculating the  gap width')
-            //     const gap = Math.abs(( parseInt(activeHour[0]) - date.getHours() )) + Math.abs(( parseInt(activeHour[1]) - date.getMinutes() )) / 60 + (date.getSeconds() / 3600 )  
-            //     console.log(gap,'this is gap')
-            //     progressBarWidth.current = calculateGapPercentage(gap,tasks[0].gap)
-            //     console.log(progressBarWidth.current,'case# progress bar width')
-            // }
-               
             const progressBars = document.querySelectorAll('#progress-bar') 
             let taskIndexer = 0
             for(let progressBar of progressBars){
-                // console.log(progressBar)
-                // console.log(tasks[taskIndexer])
-                console.log(tasks,'case# tasks')
-                const currentActiveTask = [...tasks[taskIndexer].startTime.split(':'),...tasks[taskIndexer].endTime.split(':'),tasks[taskIndexer].gap]
-                console.log(currentActiveTask,'case# current active task')
+
+                const initialTime = tasks[taskIndexer].startTime.split(':')
+                const endTime = tasks[taskIndexer].endTime.split(':')
+                console.log(endTime,'case# endtime check')
+                const initialTimeToHour = parseInt(initialTime[0]) + ( parseInt(initialTime[1]) / 60 )
+                let endTimeToHour = parseInt(endTime[0]) + ( parseInt(endTime[1]) / 60 )
+                if(endTimeToHour < initialTimeToHour)
+                    endTimeToHour = endTimeToHour + 24
+                const gap = endTimeToHour - initialTimeToHour
+                console.log(gap,'case# gap')
+
+                const currentActiveTask = [...tasks[taskIndexer].startTime.split(':'),...tasks[taskIndexer].endTime.split(':'),gap]
                 const date = new Date()
                 const activeHour = date.getHours()
                 const activeMinute = date.getMinutes()
                 const activeSecond = date.getSeconds() 
-                console.log(activeHour,'case# active hour ')
                 let exceptionStartHour = parseInt(currentActiveTask[0])
                 let exceptionEndHour = parseInt(currentActiveTask[2])
                 if(exceptionStartHour === 0 )
                     exceptionStartHour = 24
                 if(exceptionEndHour === 0 )
                     exceptionEndHour = 24
-                if(exceptionStartHour <= activeHour && activeHour <= exceptionEndHour ){
+                console.log(exceptionStartHour,activeHour,exceptionEndHour,'case# start, active, end hour')
+                if((exceptionStartHour <= activeHour && activeHour <= exceptionEndHour) || (activeHour > exceptionStartHour && activeHour > exceptionEndHour)  ){
                     const gap = Math.abs(exceptionStartHour - activeHour)  + Math.abs(parseInt(currentActiveTask[1]) - activeMinute )  / 60 + (activeSecond / 3600)
-                    console.log(gap)
                     function calculateGapPercentage(currentGap,totalGap){
-                        console.log(currentGap,totalGap,'case# calculate gap percentage')
-                        const gapPercentage = ( currentGap * 100 ) / totalGap
+                        let gapPercentage = 0
+                        console.log(currentGap,totalGap,'case# currentgap and totalgap')
+                        if(totalGap !== 0){
+                            gapPercentage = ( currentGap * 100 ) / totalGap
+                        }
                         return gapPercentage 
                     }   
+                    console.log(gap,'case# another gap')
                     const progressBarWidth = calculateGapPercentage(gap,currentActiveTask[4])
-                    console.log(progressBarWidth,'case# progressBarWidth')
+                    console.log(progressBarWidth,'case# progress bar width')
+                    if(progressBarWidth <= 100)
                     progressBar.style = 'width : ' + progressBarWidth + '%'
+                        else if(progressBarWidth > 100) {
+                            progressBar.style = 'width : 100% ' 
+                        }
 
-                } else {
+                }
+                else {
                     progressBar.style = 'width : 0%'
                 }
 
@@ -191,7 +177,6 @@ export default function Task(){
             } 
         },1000)
         return ()=>{
-            console.log('i am out')
             clearInterval(interval)
         }
     },[tasks,activeHour])
