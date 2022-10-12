@@ -2,11 +2,6 @@ import React, { useEffect, useReducer, useRef, useState }  from 'react'
 import '../style/task.css'
 import {Plus,Trash} from 'react-feather'
 export default function Task(){
-    const TASKCONTAINERBACKGROUND = ['#ff0000','#00ff00','#0000ff']
-    const [activeHour,setActiveHour] = useState([])
-    function random(max){
-        return Math.floor(Math.random() * max)
-    }
     const initialTask = [{
             'title' : '',
             'startTime' : '05:00',
@@ -72,16 +67,6 @@ export default function Task(){
         
         }
     })
-    useEffect(()=>{
-        // setActiveHour(()=>{
-        //     return [...tasks[0].startTime.split(':'),...tasks[0].endTime.split(':')]
-        // })
-        console.log(tasks)
-    },[tasks])
-
-    useEffect(()=>{
-        console.log(activeHour)
-    },[activeHour])
     function setTitle(e){
         const { id } = e.target.dataset
         tasks[parseInt(id)] = {
@@ -96,9 +81,6 @@ export default function Task(){
     }
     function setStartTime(e){
         let { id } = e.target.dataset
-        id = parseInt(id)
-        console.log(typeof e.target.value)
-
         tasks[id] = {
             ...tasks[id],
             'startTime' : e.target.value,
@@ -129,7 +111,6 @@ export default function Task(){
 
                 const initialTime = tasks[taskIndexer].startTime.split(':')
                 const endTime = tasks[taskIndexer].endTime.split(':')
-                console.log(endTime,'case# endtime check')
                 const initialTimeToHour = parseInt(initialTime[0]) + ( parseInt(initialTime[1]) / 60 )
                 let endTimeToHour = parseInt(endTime[0]) + ( parseInt(endTime[1]) / 60 )
                 if(endTimeToHour < initialTimeToHour)
@@ -142,15 +123,15 @@ export default function Task(){
                 const activeHour = date.getHours()
                 const activeMinute = date.getMinutes()
                 const activeSecond = date.getSeconds() 
-                let exceptionStartHour = parseInt(currentActiveTask[0])
-                let exceptionEndHour = parseInt(currentActiveTask[2])
-                if(exceptionStartHour === 0 )
-                    exceptionStartHour = 24
-                if(exceptionEndHour === 0 )
-                    exceptionEndHour = 24
-                console.log(exceptionStartHour,activeHour,exceptionEndHour,'case# start, active, end hour')
-                if((exceptionStartHour <= activeHour && activeHour <= exceptionEndHour) || (activeHour > exceptionStartHour && activeHour > exceptionEndHour)  ){
-                    const gap = Math.abs(exceptionStartHour - activeHour)  + Math.abs(parseInt(currentActiveTask[1]) - activeMinute )  / 60 + (activeSecond / 3600)
+                let startHour = parseInt(currentActiveTask[0])
+                let endHour = parseInt(currentActiveTask[2])
+                if(startHour === 0 )
+                startHour = 24
+                if(endHour === 0 )
+                endHour = 24
+                console.log(startHour,endHour,'case# start hour and end hour')
+                if((startHour <= activeHour && activeHour <= endHour) || (activeHour > startHour && activeHour > endHour)  ){
+                    const gap = Math.abs(startHour - activeHour)  + Math.abs(parseInt(currentActiveTask[1]) - activeMinute )  / 60 + (activeSecond / 3600)
                     function calculateGapPercentage(currentGap,totalGap){
                         let gapPercentage = 0
                         console.log(currentGap,totalGap,'case# currentgap and totalgap')
@@ -161,7 +142,6 @@ export default function Task(){
                     }   
                     console.log(gap,'case# another gap')
                     const progressBarWidth = calculateGapPercentage(gap,currentActiveTask[4])
-                    console.log(progressBarWidth,'case# progress bar width')
                     if(progressBarWidth <= 100)
                     progressBar.style = 'width : ' + progressBarWidth + '%'
                         else if(progressBarWidth > 100) {
@@ -179,7 +159,7 @@ export default function Task(){
         return ()=>{
             clearInterval(interval)
         }
-    },[tasks,activeHour])
+    },[tasks])
     return(
         <div className='task-container'>
             {
