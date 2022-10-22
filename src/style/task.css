@@ -1,6 +1,5 @@
 .task-container {
     margin: 10px 0;
-    
 }
 
 
@@ -12,6 +11,7 @@
     align-items: center;
     margin: 10px 0;
     position: relative;
+    flex: 4;
 }
 .that-inner-task-container{
     display: flex;
@@ -65,9 +65,9 @@ svg{
 #progress-bar {
     position: absolute;
     height: 100%;
-    border-radius: 6px;
-    width: 10%;
+    /* width: 10%; */
     left: 0;
+    transition: 0.1s linear;
     top: 0;
     z-index: -1;
 }
@@ -75,4 +75,42 @@ svg{
     background-color: #3ab984;
 }
 .incomplete-bar {
+}
+#task-status-container{
+    width: 100%;
+    flex: 1;
+    margin-left: 10px;
+}
+#task-status-inner-container{
+    background-color: #363636;
+    color: #ffffff;
+    padding: 4px;
+    border-radius:6px ;
+    font-size: 14px;
+    border-top-left-radius: 50%;
+    border-bottom-left-radius: 50%;
+    padding-left: 8px;
+    width: max-content;
+}
+.that-task-outer-container {
+    display: flex;
+    align-items: center;
+    width: 500px;
+}
+#task-start-time-container,#task-end-time-container {
+    position: relative;
+}
+#task-start-time-info-container,#task-end-time-info-container{
+    position: absolute;
+    left: -200px;
+    font-size: 14px;
+    padding: 5px;
+    padding-right: 40px;
+    color: #ffffff;
+    border-radius: 6px;
+    border-top-right-radius: 50%;
+    border-bottom-right-radius: 50%;
+    background-color: #363636;
+    bottom: 0;
+    transition: 0.1s ease-out;
 }
