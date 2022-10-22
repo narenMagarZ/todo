@@ -1,0 +1,10 @@
+.headbar-container {
+    padding:10px 5px;
+    border-radius: 6px;
+    text-align: center;
+    background-color: #df8d4b;
+}
+.headbar-container > span{
+    color: #ffffff;
+    font-weight: 600;
+}

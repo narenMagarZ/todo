@@ -1,19 +1,20 @@
-import React, { useEffect, useReducer, useRef, useState }  from 'react'
+import React, { useEffect, useReducer, useRef }  from 'react'
 import '../style/task.css'
 import {Plus,Trash} from 'react-feather'
+import victoryMP3 from '../audiofile/victory.mp3'
 export default function Task(){
-    const TASKCONTAINERBACKGROUND = ['#ff0000','#00ff00','#0000ff']
-    const [activeHour,setActiveHour] = useState([])
-    function random(max){
-        return Math.floor(Math.random() * max)
-    }
+    const victory = useRef(new Audio(victoryMP3))
     const initialTask = [{
             'title' : '',
-            'startTime' : '05:00',
-            'endTime' : '00:00',
-            'isDone' : false,
-            'gap' : 0
+            'startTime' : '05:00;05:00',
+            'endTime' : '05:00;05:00',
+            'isDone' : null,
+            'beepTime' : [],
+            'isStartTimeValid' : false,
+            'isBeeped' : false,
+            'isEndTimeValid' : false,
     }]
+    
     const taskReducer = (state,{type,payload})=>{
         if(type === 'ADDNEWTASK')
             return [...state,payload]
@@ -24,6 +25,12 @@ export default function Task(){
         else if(type === 'SETSTARTTIME')
             return [...state]
         else if(type === 'SETENDTIME')
+            return [...state]
+        else if(type === 'STARTBEEP')
+            return [...state]
+        else if(type === 'SETBEEPTIME')
+            return [...state]
+        else if(type === 'TASKSTATUS')
             return [...state]
         else return state
     }
@@ -48,8 +55,6 @@ export default function Task(){
         const addTaskBtn = document.querySelectorAll('#add-task-btn')
         const removeTaskBtn = document.querySelectorAll('#remove-task-btn')
         const taskTitleField = document.querySelectorAll('#task-title-field')
-        const taskTimeField = document.querySelectorAll('#task-time-field')
-
         addTaskBtn.forEach((btn)=>{
             btn.addEventListener('click',addTask)
         })
@@ -58,9 +63,6 @@ export default function Task(){
         })
         taskTitleField.forEach((field)=>{
             field.addEventListener('change',setTitle)
-        })
-        taskTimeField.forEach((btn)=>{
-
         })
         
         return()=>{
@@ -73,21 +75,11 @@ export default function Task(){
         
         }
     })
-    useEffect(()=>{
-        setActiveHour(()=>{
-            return [...tasks[0].startTime.split(':'),...tasks[0].endTime.split(':')]
-        })
-        console.log(tasks)
-    },[tasks])
-
-    useEffect(()=>{
-        console.log(activeHour)
-    },[activeHour])
-    function setTitle(e){
-        const { id } = e.target.dataset
+    function setTitle({target}){
+        const id = parseInt(target.dataset.id)      
         tasks[parseInt(id)] = {
             ...tasks[parseInt(id)],
-            'title' : e.target.value
+            'title' : target.value,
         }
         dispatchTask({
             'type' : 'EDITTASK',
@@ -95,14 +87,53 @@ export default function Task(){
         })
         
     }
-    function setStartTime(e){
-        let { id } = e.target.dataset
-        id = parseInt(id)
-        console.log(typeof e.target.value)
+    const calculateHour = (hour,minute,second=0)=>hour + (minute / 60) + (second / 3600)
 
+    function setBeepTime(isStartTimeValid,isEndTimeValid,taskEndTime){
+        if(isStartTimeValid && isEndTimeValid) return [taskEndTime[0],taskEndTime[1] === 0 ? 1 : taskEndTime[1]]
+        else return []
+    }
+     
+    function checkValidTaskTime(startTime,endTime){
+        const splitStartTime = [...startTime.split(':')]
+        const splitEndTime = [...endTime.split(':')]
+        const startHour = parseInt(splitStartTime[0])
+        const startMinute = parseInt(splitStartTime[1])
+        const endHour = parseInt(splitEndTime[0])
+        const endMinute = parseInt(splitEndTime[1])
+
+        let isValidTime = false
+        const sTotalHour = calculateHour(startHour,startMinute)
+        const eTotalHour = calculateHour(endHour,endMinute)
+        const gapHour = eTotalHour - sTotalHour
+        if( gapHour < 24 || (startHour >= 13 && endHour <= 23)){
+            isValidTime = true
+        } 
+        return isValidTime
+    }
+
+    function convertStrToArray(strArray){
+        const intArray = [...strArray.split(':')]
+        return [parseInt(intArray[0]),parseInt(intArray[1])]
+    }
+    function setStartTime({target}){
+        const id  = parseInt(target.dataset.id)
         tasks[id] = {
             ...tasks[id],
-            'startTime' : e.target.value,
+            'startTime' : `${target.value};${target.value}`,
+        }
+        const startTimeHolder = convertStrToArray(target.value)
+        const date = new Date()
+        const activeHour = date.getHours()
+        const activeMinute = date.getMinutes()
+        const activeTimeToHour = calculateHour(activeHour,activeMinute)
+        const startTimeToHour = calculateHour(startTimeHolder[0],startTimeHolder[1])
+        if(startTimeToHour < activeTimeToHour ){
+            tasks[id].isStartTimeValid = false
+            target.parentElement.previousSibling.hidden = false
+        } else {
+            target.parentElement.previousSibling.hidden = true
+            tasks[id].isStartTimeValid = true
         }
         dispatchTask({
             'type' : 'SETSTARTTIME',
@@ -110,97 +141,145 @@ export default function Task(){
         })
 
     }
-    function setEndTime(e){
-        let { id } = e.target.dataset
-        id = parseInt(id)
-        const initialTime = tasks[id].startTime.split(':')
-        const endTime = e.target.value.split(':')
-        console.log(endTime,'case# endtime check')
-        const initialTimeToHour = parseInt(initialTime[0]) + ( parseInt(initialTime[1]) / 60 )
-        let endTimeToHour = parseInt(endTime[0]) + ( parseInt(endTime[1]) / 60 )
-        if(endTimeToHour < initialTimeToHour)
-            endTimeToHour = endTimeToHour + 24
-        const gap = endTimeToHour - initialTimeToHour
-        console.log(gap,'case# gap')
-        tasks[id] = {
-            ...tasks[id],
-            'endTime' : e.target.value,
-            'gap' : gap
+
+    function setEndTime({target}){
+        const id = parseInt(target.dataset.id)
+        let endTime = target.value
+        const taskEndTime = convertStrToArray(target.value)
+        if(taskEndTime[0] === 0){
+            taskEndTime[0] = 24
+            if(taskEndTime[1] === 0){
+                endTime = '24:00;00:00'
+            } else {
+                endTime = '24:00;00:00'
+            }
+        } else {
+            endTime = `${target.value};${target.value}`
         }
-        dispatchTask({
-            'type' : 'SETENDTIME',
-            'payload' : tasks
-        })
+        const date = new Date()
+        const activeHour = date.getHours()
+        const activeMinute = date.getMinutes()
+        const activeTimeToHour = calculateHour(activeHour,activeMinute)
+        const endTimeToHour = calculateHour(taskEndTime[0],taskEndTime[1])
+        if(endTimeToHour < activeTimeToHour){
+            target.parentElement.previousSibling.hidden = false
+            tasks[id].isEndTimeValid = false
+        } else {
+            target.parentElement.previousSibling.hidden = true
+            tasks[id].isEndTimeValid = true
+        }
+        if(checkValidTaskTime(tasks[id].startTime,endTime)){
+            tasks[id] = {
+                ...tasks[id],
+                'endTime' : endTime,
+                'beepTime' : setBeepTime(tasks[id].isStartTimeValid,tasks[id].isEndTimeValid,taskEndTime)
+            }
+                dispatchTask({
+                    'type' : 'SETENDTIME',
+                    'payload' : tasks
+
+                })
+        }
     }
     useEffect(()=>{
-        const interval =  setInterval(()=>{
-            // const date = new Date(Date.now())
-            // function calculateGapPercentage(currentGap,totalGap){
-            //     const gapPercentage = ( currentGap * 100 ) / totalGap
-            //     return gapPercentage 
-            // }         
-            // console.log(activeHour)
-            // let midNightHour = parseInt(activeHour[2])
-            // if(activeHour[2] === '00')
-            //     midNightHour = 24
-            // console.log(midNightHour,'case# midnight hour')
-            // if(parseInt(activeHour[0]) <= date.getHours() && date.getHours() <= midNightHour  ){
-            //     console.log('calculating the  gap width')
-            //     const gap = Math.abs(( parseInt(activeHour[0]) - date.getHours() )) + Math.abs(( parseInt(activeHour[1]) - date.getMinutes() )) / 60 + (date.getSeconds() / 3600 )  
-            //     console.log(gap,'this is gap')
-            //     progressBarWidth.current = calculateGapPercentage(gap,tasks[0].gap)
-            //     console.log(progressBarWidth.current,'case# progress bar width')
-            // }
-               
+        const interval = setInterval(()=>{
             const progressBars = document.querySelectorAll('#progress-bar') 
             let taskIndexer = 0
             for(let progressBar of progressBars){
-                // console.log(progressBar)
-                // console.log(tasks[taskIndexer])
-                console.log(tasks,'case# tasks')
-                const currentActiveTask = [...tasks[taskIndexer].startTime.split(':'),...tasks[taskIndexer].endTime.split(':'),tasks[taskIndexer].gap]
-                console.log(currentActiveTask,'case# current active task')
-                const date = new Date()
-                const activeHour = date.getHours()
-                const activeMinute = date.getMinutes()
-                const activeSecond = date.getSeconds() 
-                console.log(activeHour,'case# active hour ')
-                let exceptionStartHour = parseInt(currentActiveTask[0])
-                let exceptionEndHour = parseInt(currentActiveTask[2])
-                if(exceptionStartHour === 0 )
-                    exceptionStartHour = 24
-                if(exceptionEndHour === 0 )
-                    exceptionEndHour = 24
-                if(exceptionStartHour <= activeHour && activeHour <= exceptionEndHour ){
-                    const gap = Math.abs(exceptionStartHour - activeHour)  + Math.abs(parseInt(currentActiveTask[1]) - activeMinute )  / 60 + (activeSecond / 3600)
-                    console.log(gap)
-                    function calculateGapPercentage(currentGap,totalGap){
-                        console.log(currentGap,totalGap,'case# calculate gap percentage')
-                        const gapPercentage = ( currentGap * 100 ) / totalGap
-                        return gapPercentage 
-                    }   
-                    const progressBarWidth = calculateGapPercentage(gap,currentActiveTask[4])
-                    console.log(progressBarWidth,'case# progressBarWidth')
-                    progressBar.style = 'width : ' + progressBarWidth + '%'
-
-                } else {
-                    progressBar.style = 'width : 0%'
+                if(tasks[taskIndexer].isDone) {
+                    progressBar.style = 'width : 100%' 
+                    break
                 }
-
-                taskIndexer ++ 
+                if(!tasks[taskIndexer].isStartTimeValid ||  !tasks[taskIndexer].isEndTimeValid) break
+                    const {startTime,endTime} = tasks[taskIndexer]
+                    const startTimeHolder = startTime.split(';')[0]
+                    const endTimeHolder = endTime.split(';')[0]
+                    const initialTime = convertStrToArray(startTimeHolder)
+                    const finalTime = convertStrToArray(endTimeHolder)
+                    const initialTimeToHour = calculateHour(initialTime[0],initialTime[1])
+                    let finalTimeToHour = calculateHour(finalTime[0],finalTime[1])
+                    const gapInFinalAndInitialHour = finalTimeToHour - initialTimeToHour
+                    const currentActiveTask = [...initialTime,...finalTime,gapInFinalAndInitialHour]
+                    const date = new Date()
+                    const activeHour = date.getHours()
+                    const activeMinute = date.getMinutes()
+                    const activeSecond = date.getSeconds() 
+                    const beepTime = tasks[taskIndexer].beepTime
+                    console.log(beepTime,'beep time')
+                    if(activeHour === beepTime[0] && activeMinute === beepTime[1] && !tasks[taskIndexer].isBeeped ){
+                            victory.current.play()
+                            tasks[taskIndexer].isBeeped = true
+                            dispatchTask({
+                                'type' : 'STARTBEEP',
+                                'payload' : tasks
+                            })    
+                    }
+                    let startHour = currentActiveTask[0]
+                    let endHour = currentActiveTask[2]
+                    if(startHour === 0 ) startHour = 24
+                    if(endHour === 0 ) endHour = 24
+                    
+                    const activeTimeToHour = calculateHour(activeHour,activeMinute)
+                    const startTimeToHour = calculateHour(currentActiveTask[0],currentActiveTask[1])
+                    const endTimeToHour = calculateHour(currentActiveTask[2],currentActiveTask[3])
+                    const isStartTimeValid = tasks[taskIndexer].isStartTimeValid
+                    const isEndTimeValid = tasks[taskIndexer].isEndTimeValid
+                    let isOkay = false
+                    if((activeTimeToHour >= startTimeToHour && 
+                        activeTimeToHour <= endTimeToHour &&
+                        isStartTimeValid && isEndTimeValid )) isOkay = true
+                    else if(isOkay){
+                        const gap = Math.abs(startHour - activeHour)  + 
+                        Math.abs(currentActiveTask[1] - activeMinute )  / 60 + (activeSecond / 3600)
+                        function calculateGapPercentage(currentGap,totalGap){
+                            let gapPercentage = 0
+                            if(totalGap !== 0){
+                                gapPercentage = ( currentGap * 100 ) / totalGap
+                            }
+                            return gapPercentage 
+                        }   
+                        const progressBarWidth = calculateGapPercentage(gap,currentActiveTask[4])
+                        if(progressBarWidth < 100){
+                            progressBar.style = 'width : ' + progressBarWidth + '%'
+                            tasks[taskIndexer] = {
+                                ...tasks[taskIndexer],
+                                'isDone' : false
+                            }
+                            dispatchTask({
+                                'type' : 'TASKSTATUS',
+                                'payload' : tasks
+                            })
+                        }
+                        else if(progressBarWidth >= 100 && !tasks[taskIndexer].isDone ) {
+                            progressBar.style = 'width : 100% ' 
+                            tasks[taskIndexer] = {
+                                ...tasks[taskIndexer],
+                                'isDone' : true
+                            }
+                            dispatchTask({
+                                'type' : 'TASKSTATUS',
+                                'payload' : tasks
+                            })
+                            }
+    
+                    }
+                    else if(!tasks[taskIndexer].isDone) {
+                        progressBar.style = 'width : 0%'
+                    } 
+                    taskIndexer ++ 
             } 
         },1000)
         return ()=>{
-            console.log('i am out')
             clearInterval(interval)
         }
-    },[tasks,activeHour])
+    },[tasks])
     return(
         <div className='task-container'>
             {
                 tasks.map(({title,startTime,endTime,isDone},index)=>{
                     return (
-                        <div className='that-task-container' key={index}>
+                        <div className='that-task-outer-container' key={index} >
+                        <div className='that-task-container'>
                             <div draggable className='that-inner-task-container'>
                                 <div id='task-detail-tap-container'>
                                 <input data-id={index} id='task-title-field' placeholder ="title here..."
@@ -208,10 +287,28 @@ export default function Task(){
                                 onChange = {(e)=>setTitle(e)} 
                                 />
                                 <div id='task-time-field-container'>
-                                <input data-id = {index} id='task-time-field' value={startTime} 
-                                type='time' onInput={(e)=>setStartTime(e)} />
-                                <input data-id = {index} id='task-time-field' value={endTime}
+                                    <div id='task-start-time-container'>
+                                        <div hidden id='task-start-time-info-container'>
+                                            <span>
+                                                Cannot set this time
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <input data-id = {index} id='task-time-field' value={startTime.split(';')[1]} 
+                                            type='time' onInput={(e)=>setStartTime(e)} />
+                                        </div>
+                                    </div>  
+                                    <div id='task-end-time-container'>
+                                        <div hidden id='task-end-time-info-container'>
+                                            <span>
+                                                Cannot set this time
+                                            </span>
+                                        </div>
+                                        <div>
+                                <input data-id = {index} id='task-time-field' value={endTime.split(';')[1]}
                                 type='time' onInput={(e)=>setEndTime(e)} />
+                                        </div>
+                                    </div>                          
                                 </div>
                                 </div>
                             </div>
@@ -225,6 +322,13 @@ export default function Task(){
                             </div>
                             <div id='progress-bar' className='complete-bar'></div>
                         </div>
+                            <div id='task-status-container'>
+                                <div id='task-status-inner-container' style={{'backgroundColor':  isDone ? "#ff0000" : '#000000'  }} >
+                                     <span>{isDone === null ?'Not assigned yet!':isDone ? "Completed" : 'On progress'}</span>
+                                </div>
+                            </div>
+
+                         </div>
                     )
                 })
             }
